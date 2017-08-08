@@ -1,5 +1,11 @@
 package mapreduce
 
+import (
+	"encoding/json"
+	"log"
+	"os"
+)
+
 // doReduce does the job of a reduce worker: it reads the intermediate
 // key/value pairs (produced by the map phase) for this task, sorts the
 // intermediate key/value pairs by key, calls the user-defined reduce function
@@ -10,6 +16,14 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
+	rFileName := reduceName(jobName, nMap, reduceTaskNumber)
+	rFile, err := os.Open(rFileName)
+	if err != nil {
+		log.Fatal("Open reduce file: ", rFileName, "Failed! Error: ", err)
+	}
+
+	rJsonDecoder := json.NewDecoder(rFile)
+	rJsonDecoder.Decode()
 	// TODO:
 	// You will need to write this function.
 	// You can find the intermediate file for this reduce task from map task number

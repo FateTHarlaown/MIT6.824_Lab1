@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"sort"
 )
 
 // doReduce does the job of a reduce worker: it reads the intermediate
@@ -16,14 +17,37 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
-	rFileName := reduceName(jobName, nMap, reduceTaskNumber)
-	rFile, err := os.Open(rFileName)
-	if err != nil {
-		log.Fatal("Open reduce file: ", rFileName, "Failed! Error: ", err)
+	KeyValues := make(map[string]string)
+
+	for i := 0; i < nMap; i++ { //循环读取每个中间文件中的键值对到KeyValues中，先不考虑内存是否足够的问题
+		rFileName := reduceName(jobName, i, reduceTaskNumber)
+		rFile, err := os.Open(rFileName)
+		if err != nil {
+			log.Fatal("open the intermediate file: ", rFileName, "failed error: ", err)
+		}
+
+		for { //从一个中间文件中循环读取出键值对，并将不重复的键值对存储到KeyValus中, 丢弃后面的重复键值对。读取一直到文件结束。
+			var kv KeyValue
+			deccoder := json.NewDecoder(rFile)
+
+			err = deccoder.Decode(&kv)
+			if err != nil {
+				break
+			}
+
+			_, ok := KeyValues[kv.Key]
+			if !ok {
+				KeyValues[kv.Key] = kv.Value
+			}
+		}
 	}
 
-	rJsonDecoder := json.NewDecoder(rFile)
-	rJsonDecoder.Decode()
+	keys := make([]string, 0)
+	for k, _ := range KeyValues {
+		keys = append(keys, k)
+	}
+
+	sort.Strings(keys)
 	// TODO:
 	// You will need to write this function.
 	// You can find the intermediate file for this reduce task from map task number

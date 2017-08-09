@@ -17,7 +17,7 @@ func doReduce(
 	nMap int, // the number of map tasks that were run ("M" in the paper)
 	reduceF func(key string, values []string) string,
 ) {
-	KeyValues := make(map[string]string)
+	KeyValues := make(map[string][]string)
 
 	for i := 0; i < nMap; i++ { //循环读取每个中间文件中的键值对到KeyValues中，先不考虑内存是否足够的问题
 		rFileName := reduceName(jobName, i, reduceTaskNumber)
@@ -25,8 +25,9 @@ func doReduce(
 		if err != nil {
 			log.Fatal("open the intermediate file: ", rFileName, "failed error: ", err)
 		}
+		defer rFile.Close()
 
-		for { //从一个中间文件中循环读取出键值对，并将不重复的键值对存储到KeyValus中, 丢弃后面的重复键值对。读取一直到文件结束。
+		for { //从一个中间文件中循环读取出键值对，并将键值对存储到KeyValus中, 注意处理重复的key0
 			var kv KeyValue
 			deccoder := json.NewDecoder(rFile)
 
@@ -36,18 +37,35 @@ func doReduce(
 			}
 
 			_, ok := KeyValues[kv.Key]
-			if !ok {
-				KeyValues[kv.Key] = kv.Value
+			if !ok { //没有这个key值则需要创建一个[]string的切片
+				KeyValues[kv.Key] = make([]string, 0)
 			}
+			append(KeyValues[kv.Key], kv.Value)
 		}
 	}
 
+	//keys中存放各个键值对的key，用于进行排序
 	keys := make([]string, 0)
 	for k, _ := range KeyValues {
 		keys = append(keys, k)
 	}
-
 	sort.Strings(keys)
+
+	mFileName := mergeName(jobName, reduceTaskNumber)
+	mFile, err := os.Create(mFileName)
+	if err != nil {
+		log.Fatal("can not ctreate ouput merge file: ", mFileName, "error: ", err)
+	}
+	defer mFile.Close()
+	enc := json.NewEncoder(mFile)
+
+	for _, k := range keys { //依次对各个key值调用用户提供的mapF函数并将结果写入merge文件
+		ans := reduceF(k, KeyValues[k])
+		err := enc.Encode(ans)
+		if err != nil {
+			log.Fatal("encode ans failed!:", ans, "error: ", err)
+		}
+	}
 	// TODO:
 	// You will need to write this function.
 	// You can find the intermediate file for this reduce task from map task number

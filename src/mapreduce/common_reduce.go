@@ -2,6 +2,7 @@ package mapreduce
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 	"sort"
@@ -19,6 +20,7 @@ func doReduce(
 ) {
 	KeyValues := make(map[string][]string)
 
+	fmt.Println("Now get ", nMap, " rFiles")
 	for i := 0; i < nMap; i++ { //循环读取每个中间文件中的键值对到KeyValues中，先不考虑内存是否足够的问题
 		rFileName := reduceName(jobName, i, reduceTaskNumber)
 		rFile, err := os.Open(rFileName)
@@ -27,28 +29,30 @@ func doReduce(
 		}
 		defer rFile.Close()
 
-		for { //从一个中间文件中循环读取出键值对，并将键值对存储到KeyValus中, 注意处理重复的key0
+		for { //从一个中间文件中循环读取出键值对，并将键值对存储到KeyValus中
 			var kv KeyValue
 			deccoder := json.NewDecoder(rFile)
 
 			err = deccoder.Decode(&kv)
 			if err != nil {
+				fmt.Println("Error: ", err)
 				break
 			}
-
-			_, ok := KeyValues[kv.Key]
-			if !ok { //没有这个key值则需要创建一个[]string的切片
+			fmt.Println("reduce get a kv from json: ", kv, "the rFileName: ", rFileName)
+			_, exis := KeyValues[kv.Key]
+			if !exis { //没有这个key值则需要创建一个[]string的切片
 				KeyValues[kv.Key] = make([]string, 0)
 			}
-			append(KeyValues[kv.Key], kv.Value)
+			KeyValues[kv.Key] = append(KeyValues[kv.Key], kv.Value)
 		}
 	}
-
+	fmt.Println("KV MAP has: ", len(KeyValues))
 	//keys中存放各个键值对的key，用于进行排序
 	keys := make([]string, 0)
 	for k, _ := range KeyValues {
 		keys = append(keys, k)
 	}
+	//fmt.Println(len(keys))
 	sort.Strings(keys)
 
 	mFileName := mergeName(jobName, reduceTaskNumber)
@@ -60,7 +64,9 @@ func doReduce(
 	enc := json.NewEncoder(mFile)
 
 	for _, k := range keys { //依次对各个key值调用用户提供的mapF函数并将结果写入merge文件
-		ans := reduceF(k, KeyValues[k])
+		var ans KeyValue
+		ans.Value = reduceF(k, KeyValues[k])
+		ans.Key = k
 		err := enc.Encode(ans)
 		if err != nil {
 			log.Fatal("encode ans failed!:", ans, "error: ", err)

@@ -45,16 +45,15 @@ func doMap(
 	//
 	// Remember to close the file after you have written all the values!
 	//从这里开始写
-	file, err := os.Open("inFile") // For read access.
-	defer file.Close()
-
+	file, err := os.Open(inFile) // For read access.
 	if err != nil {
-		log.Fatal("doMap failed to open input file: ", inFile, "error: ", err)
+		log.Fatal("doMap failed to open input file: ", inFile, " error: ", err)
 	}
+	defer file.Close()
 
 	fi, err := file.Stat()
 	if err != nil {
-		log.Fatal("get input file info failed: ", file, "error: ", err)
+		log.Fatal("get input file info failed: ", file, " error: ", err)
 	}
 
 	data := make([]byte, fi.Size())
@@ -67,6 +66,7 @@ func doMap(
 
 	rFiles := make([]*os.File, nReduce)
 	rEncodes := make([]*json.Encoder, nReduce)
+
 	for i := 0; i < nReduce; i++ { //创建rReduce个中间文件供reduce步骤读取
 		rFileName := reduceName(jobName, mapTaskNumber, i)
 		rFile, err := os.Create(rFileName)
@@ -84,6 +84,7 @@ func doMap(
 		if err != nil {
 			log.Fatal("encode kv failed: ", err)
 		}
+		//fmt.Println("have encoded kv: ", v, "into ", *rFiles[n])
 	}
 }
 

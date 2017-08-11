@@ -8,6 +8,11 @@ import (
 	"sort"
 )
 
+type KV struct {
+	Key   string
+	Value string
+}
+
 // doReduce does the job of a reduce worker: it reads the intermediate
 // key/value pairs (produced by the map phase) for this task, sorts the
 // intermediate key/value pairs by key, calls the user-defined reduce function
@@ -20,25 +25,27 @@ func doReduce(
 ) {
 	KeyValues := make(map[string][]string)
 
-	fmt.Println("Now get ", nMap, " rFiles")
+	//fmt.Println("Now get ", nMap, " rFiles")
 	for i := 0; i < nMap; i++ { //循环读取每个中间文件中的键值对到KeyValues中，先不考虑内存是否足够的问题
-		rFileName := reduceName(jobName, i, reduceTaskNumber)
+		//rFileName := reduceName(jobName, i, reduceTaskNumber)
+		rFileName := "mrtmp.test-0-0"
 		rFile, err := os.Open(rFileName)
 		if err != nil {
 			log.Fatal("open the intermediate file: ", rFileName, "failed error: ", err)
 		}
+
 		defer rFile.Close()
+		dec := json.NewDecoder(rFile)
+		var kv KeyValue
 
 		for { //从一个中间文件中循环读取出键值对，并将键值对存储到KeyValus中
-			var kv KeyValue
-			deccoder := json.NewDecoder(rFile)
-
-			err = deccoder.Decode(&kv)
+			err := dec.Decode(&kv)
+			fmt.Println(kv)
 			if err != nil {
-				fmt.Println("Error: ", err)
+				//fmt.Println("Error: ", err)
 				break
 			}
-			fmt.Println("reduce get a kv from json: ", kv, "the rFileName: ", rFileName)
+			//fmt.Println("reduce get a kv from json: ", kv, "the rFileName: ", rFileName)
 			_, exis := KeyValues[kv.Key]
 			if !exis { //没有这个key值则需要创建一个[]string的切片
 				KeyValues[kv.Key] = make([]string, 0)
@@ -46,7 +53,7 @@ func doReduce(
 			KeyValues[kv.Key] = append(KeyValues[kv.Key], kv.Value)
 		}
 	}
-	fmt.Println("KV MAP has: ", len(KeyValues))
+	//fmt.Println("KV MAP has: ", len(KeyValues))
 	//keys中存放各个键值对的key，用于进行排序
 	keys := make([]string, 0)
 	for k, _ := range KeyValues {

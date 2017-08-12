@@ -2,7 +2,7 @@ package mapreduce
 
 import (
 	"encoding/json"
-	"fmt"
+	//"fmt"
 	"log"
 	"os"
 	"sort"
@@ -27,8 +27,8 @@ func doReduce(
 
 	//fmt.Println("Now get ", nMap, " rFiles")
 	for i := 0; i < nMap; i++ { //循环读取每个中间文件中的键值对到KeyValues中，先不考虑内存是否足够的问题
-		//rFileName := reduceName(jobName, i, reduceTaskNumber)
-		rFileName := "mrtmp.test-0-0"
+		rFileName := reduceName(jobName, i, reduceTaskNumber)
+		//rFileName := "mrtmp.test-0-0"
 		rFile, err := os.Open(rFileName)
 		if err != nil {
 			log.Fatal("open the intermediate file: ", rFileName, "failed error: ", err)
@@ -40,7 +40,7 @@ func doReduce(
 
 		for { //从一个中间文件中循环读取出键值对，并将键值对存储到KeyValus中
 			err := dec.Decode(&kv)
-			fmt.Println(kv)
+			//fmt.Println(kv)
 			if err != nil {
 				//fmt.Println("Error: ", err)
 				break

@@ -1,7 +1,7 @@
 package mapreduce
 
 import (
-	"fmt"
+	//"fmt"
 	"encoding/json"
 	"hash/fnv"
 	"log"
@@ -47,7 +47,7 @@ func doMap(
 	// Remember to close the file after you have written all the values!
 	//从这里开始写
 	file, err := os.Open(inFile) // For read access.
-	fmt.Println(inFile)
+	//fmt.Println(inFile)
 	if err != nil {
 		log.Fatal("doMap failed to open input file: ", inFile, " error: ", err)
 	}

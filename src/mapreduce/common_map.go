@@ -82,7 +82,7 @@ func doMap(
 
 	for _, v := range kv { //遍历经过mapF函数处理得到的中间键值对，分别写入对应的中间文件
 		n := ihash(v.Key) % uint32(nReduce)
-		err = rEncodes[n].Encode(v)
+		err = rEncodes[n].Encode(v) //这里编码进去，在文件中是一行一行的json键值对，而且换行符是标准的LF，在windows下的时候要注意这个问题，windows下的换行符是CRLF，如果要进行文件对比的话注意区分
 		if err != nil {
 			log.Fatal("encode kv failed: ", err)
 		}

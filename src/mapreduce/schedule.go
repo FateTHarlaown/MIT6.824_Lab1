@@ -21,7 +21,7 @@ func (mr *Master) schedule(phase jobPhase) {
 	for i := 0; i < ntasks; i++ {
 		wg.Add(1)
 
-		go func(taskNum int, nios int, phase jobPhase) {
+		go func(taskNum int) { //这里必须把I用参数的方式传递进去，因为开启这个goroutline后i里面就被主线程的for循环增加了
 			defer wg.Done()
 			var args DoTaskArgs
 			args.JobName = mr.jobName
@@ -39,7 +39,7 @@ func (mr *Master) schedule(phase jobPhase) {
 					break
 				}
 			}
-		}(i, nios, phase)
+		}(i)
 	}
 	wg.Wait()
 	// All ntasks tasks have to be scheduled on workers, and only once all of

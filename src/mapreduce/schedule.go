@@ -21,23 +21,25 @@ func (mr *Master) schedule(phase jobPhase) {
 	for i := 0; i < ntasks; i++ {
 		wg.Add(1)
 
-		workerName := <-mr.registerChannel
-		go func() {
+		go func(taskNum int, nios int, phase jobPhase) {
 			defer wg.Done()
 			var args DoTaskArgs
 			args.JobName = mr.jobName
-			args.File = mr.files[i]
+			args.File = mr.files[taskNum]
 			args.Phase = phase
-			args.TaskNumber = i
+			args.TaskNumber = taskNum
 			args.NumOtherPhase = nios
 			for {
+				workerName := <-mr.registerChannel
 				ok := call(workerName, "Worker.DoTask", &args, new(struct{}))
-				if ok == true {
-					mr.registerChannel <- workerName
+				if ok {
+					go func() {
+						mr.registerChannel <- workerName
+					}()
 					break
 				}
 			}
-		}()
+		}(i, nios, phase)
 	}
 	wg.Wait()
 	// All ntasks tasks have to be scheduled on workers, and only once all of
